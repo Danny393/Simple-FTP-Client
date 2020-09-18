@@ -6,8 +6,29 @@ serverName = input("Please enter the host name of the server you want to connect
 serverPort  = 21
 
 clientSocket.connect((serverName, serverPort))
-data = clientSocket.recv(2024)
+data = clientSocket.recv(1024)
 
-print("Connected to", serverName,"server with response", data)
+print("Connected to", serverName,"server with response")
+print(str(data)[2:-5])
+
+username = input("Enter username: ")
+clientSocket.send(bytes("USER " + username + "\r\n", "ascii"))
+data = clientSocket.recv(1024)
+print(str(data)[2:-5])
+
+password = input("Enter password: ")
+clientSocket.send(bytes("PASS " + password + "\r\n", 'ascii'))
+data = clientSocket.recv(1024)
+print(str(data)[2:-5])
+
+loop = True
+while loop:
+    userInput = input("myftp>")
+
+    if userInput == "quit":
+        loop = False
+        clientSocket.send(bytes("QUIT\r\n", "ascii"))
+        data = clientSocket.recv(1024)
+        print(str(data)[2:-5])
 
 clientSocket.close()
