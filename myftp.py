@@ -23,7 +23,7 @@ print(str(data)[2:-5])
 
 loop = True
 while loop:
-    userInput = input("myftp>")
+    userInput = input("myftp> ")
 
     if userInput == "quit":
         loop = False
