@@ -158,6 +158,7 @@ while loop:
             
             #loop to keep reading from server until full file has been downloaded
             fileSize = 0
+            open(downloadFile, "w+").close()
             newFile = open(downloadFile, "a+")
             file = connectionSocket.recv(1024)
             while len(file) > 0:
@@ -179,11 +180,8 @@ while loop:
 
         #look and find file to upload
         try:
-
             #read file and load contents
             uploadFile = userInput[4:]
-            file = open(uploadFile, "r")
-            uploadStream = file.read()
 
             dataSocket = socket(AF_INET, SOCK_STREAM)
             dataSocket.bind((ipAddress, 0))
@@ -203,7 +201,14 @@ while loop:
             print("Sending data to: " + str(address[0]))
 
             #send the file contents to the server
-            connectionSocket.send(bytes(str(uploadStream),"ascii"))
+            fileSize = 0
+            file = open(uploadFile, "r")
+            uploadStream = file.read(1024)
+            while len(uploadStream) > 0 :
+                connectionSocket.send(bytes(str(uploadStream),"ascii"))
+                fileSize = fileSize + len(uploadStream)
+                uploadStream = file.read(1024)
+            file.close()
 
             #server waits for input from client until the connection socket is closed
             #so we close it as soon as we finish sending
@@ -212,15 +217,11 @@ while loop:
             data = clientSocket.recv(1024)
             print(str(data)[2:-5])
 
-            print("bytes sent:", len(uploadStream))
+            print("bytes sent:", fileSize)
             dataSocket.close()
 
         #file does not exist or a directory was chosen
         except Exception:
-            print("File not Found")
-
-    #delete command
-    elif(len(userInput) >= 6 and userInput[:6] == "delete"):
-        print("Hello")        
+            print("File not Found")      
 
 clientSocket.close()
