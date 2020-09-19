@@ -95,7 +95,7 @@ while loop:
         portIPString = getPortIPString(ipAddress, dataSocket.getsockname()[1])
 
         #tell server to prepare a TCP connection with client socket at client port and IP
-        clientSocket.send(bytes(portIPString+"\r\n", "ascii"))
+        clientSocket.send(bytes(portIPString + "\r\n", "ascii"))
         data = clientSocket.recv(1024)
         print(str(data)[2:-5])
 
@@ -125,19 +125,18 @@ while loop:
         #close data and connection socket
         connectionSocket.close()
         dataSocket.close()
-
+    
     #case for get, very similar to ls, but we check for the error code to make sure
     #we don't soft lock the system and deal with each response code (Error and Success)
-    elif(len(userInput) >= 4 and userInput[:3] == "get"):
+    elif(len(userInput) >= 3 and userInput[:3] == "get"):
 
         downloadFile = userInput[4:]
-        print(downloadFile)
 
         dataSocket = socket(AF_INET, SOCK_STREAM)
         dataSocket.bind((ipAddress, 0))
         portIPString = getPortIPString(ipAddress, dataSocket.getsockname()[1])
 
-        clientSocket.send(bytes(portIPString+ "\r\n", "ascii"))
+        clientSocket.send(bytes(portIPString + "\r\n", "ascii"))
         data = clientSocket.recv(1024)
         print(str(data)[2:-5])
 
@@ -166,13 +165,55 @@ while loop:
             print(str(data)[2:-5])
 
             print("bytes received:", len(file))
+            connectionSocket.close()
 
-        connectionSocket.close()
         dataSocket.close()
 
-    #put command
+    #case for put similar to get
     elif(len(userInput) >= 3 and userInput[:3] == "put"):
-        print("Hello")
+
+        #look and find file to upload
+        try:
+
+            #read file and load contents
+            uploadFile = userInput[4:]
+            file = open(uploadFile, "r")
+            uploadStream = file.read()
+
+            dataSocket = socket(AF_INET, SOCK_STREAM)
+            dataSocket.bind((ipAddress, 0))
+            portIPString = getPortIPString(ipAddress, dataSocket.getsockname()[1])
+
+            clientSocket.send(bytes(portIPString + "\r\n", "ascii"))
+            data = clientSocket.recv(1024)
+            print(str(data)[2:-5])
+
+            clientSocket.send(bytes("STOR " + uploadFile + "\r\n", "ascii"))
+            dataSocket.listen(1)
+
+            data = clientSocket.recv(1024)
+            print(str(data)[2:-5])
+
+            connectionSocket, address = dataSocket.accept()
+            print("Sending data to: " + str(address[0]))
+
+            #send the file contents to the server
+            connectionSocket.send(bytes(str(uploadStream),"ascii"))
+
+            #server waits for input from client until the connection socket is closed
+            #so we close it as soon as we finish sending
+            connectionSocket.close()
+
+            data = clientSocket.recv(1024)
+            print(str(data)[2:-5])
+
+            print("bytes sent:", len(uploadStream))
+            dataSocket.close()
+
+        #file does not exist or a directory was chosen
+        except Exception:
+            print("File not Found")
+
 
     #delete command
     elif(len(userInput) >= 6 and userInput[:6] == "delete"):
