@@ -154,17 +154,22 @@ while loop:
         #else we accept the connection and download the file contents, assuming the file is .txt
         else:
             connectionSocket, address = dataSocket.accept()
-            file = connectionSocket.recv(1024)
             print("Receiving data from: " + str(address[0]))
-
-            newFile = open(downloadFile, "w+")
-            newFile.write(str(file.decode("ascii")))
+            
+            #loop to keep reading from server until full file has been downloaded
+            fileSize = 0
+            newFile = open(downloadFile, "a+")
+            file = connectionSocket.recv(1024)
+            while len(file) > 0:
+                newFile.write(str(file.decode("ascii")))
+                fileSize = fileSize + len(file)
+                file = connectionSocket.recv(1024)
             newFile.close()
 
             data = clientSocket.recv(1024)
             print(str(data)[2:-5])
 
-            print("bytes received:", len(file))
+            print("bytes received:", fileSize)
             connectionSocket.close()
 
         dataSocket.close()
@@ -213,7 +218,6 @@ while loop:
         #file does not exist or a directory was chosen
         except Exception:
             print("File not Found")
-
 
     #delete command
     elif(len(userInput) >= 6 and userInput[:6] == "delete"):
