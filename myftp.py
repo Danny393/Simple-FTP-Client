@@ -1,16 +1,24 @@
 #import socket module to be able to create network sockets
 from socket import socket, AF_INET, SOCK_STREAM
-
+import sys
 
 #establish basic client side socket
 clientSocket = socket(AF_INET, SOCK_STREAM)
 
 #get server name from user and the port number for FTP 21 through TCP connection
-serverName = input("Please enter the host name of the server you want to connect to:\n")
+if len(sys.argv) != 2:
+    print("Please only enter the name of the server you wish to connect to")
+    sys.exit()
+
+serverName = sys.argv[1]
 serverPort  = 21
 
 #connect to hostname of server provided
-clientSocket.connect((serverName, serverPort))
+try:
+    clientSocket.connect((serverName, serverPort))
+except Exception:
+    print("Host address of server not found")
+    sys.exit()
 
 #all data reads will be info/messages from server
 data = clientSocket.recv(1024)
@@ -75,12 +83,35 @@ while loop:
         data = clientSocket.recv(1024)
         print(str(data)[2:-5])
 
+        #this code is in every command checking the first response back from
+        #the server if it is a TimeOut response then any open sockets are closed and the ftp exits
+        if(str(data)[2:5] == "421"):
+            clientSocket.close()
+            sys.exit()
+
     #case for cd, simple CWD command
     elif len(userInput) >= 2 and userInput[:2] == "cd":
 
         clientSocket.send(bytes("CWD " + userInput[3:] + "\r\n", "ascii"))
         data = clientSocket.recv(1024)
         print(str(data)[2:-5])
+
+        if str(data)[2:5] == "421":
+            print("Lost connection to host, Exiting...")
+            clientSocket.close()
+            sys.exit()
+
+    #case for delete, simple
+    elif len(userInput) >= 6 and userInput[:6] == "delete":
+
+        clientSocket.send(bytes("DELE " + userInput[7:] + "\r\n", "ascii"))
+        data = clientSocket.recv(1024)
+        print(str(data)[2:-5])
+
+        if str(data)[2:5] == "421":
+            print("Lost connection to host, Exiting...")
+            clientSocket.close()
+            sys.exit()
 
     #case for ls, need to listen for connection using a server side socket running on client
     elif userInput == "ls":
@@ -98,6 +129,12 @@ while loop:
         clientSocket.send(bytes(portIPString + "\r\n", "ascii"))
         data = clientSocket.recv(1024)
         print(str(data)[2:-5])
+
+        if str(data)[2:5] == "421":
+            print("Lost connection to host, Exiting...")
+            clientSocket.close()
+            dataSocket.close()
+            sys.exit()
 
         #NLST command that will require TCP connection and will tell server that the client is ready for data
         clientSocket.send(bytes("NLST\r\n", "ascii"))
@@ -128,7 +165,7 @@ while loop:
     
     #case for get, very similar to ls, but we check for the error code to make sure
     #we don't soft lock the system and deal with each response code (Error and Success)
-    elif(len(userInput) >= 3 and userInput[:3] == "get"):
+    elif len(userInput) >= 3 and userInput[:3] == "get":
 
         downloadFile = userInput[4:]
 
@@ -139,6 +176,12 @@ while loop:
         clientSocket.send(bytes(portIPString + "\r\n", "ascii"))
         data = clientSocket.recv(1024)
         print(str(data)[2:-5])
+
+        if str(data)[2:5] == "421":
+            print("Lost connection to host, Exiting...")
+            clientSocket.close()
+            dataSocket.close()
+            sys.exit()
 
         clientSocket.send(bytes("RETR " + downloadFile + "\r\n", "ascii"))
         dataSocket.listen(1)
@@ -176,7 +219,7 @@ while loop:
         dataSocket.close()
 
     #case for put similar to get
-    elif(len(userInput) >= 3 and userInput[:3] == "put"):
+    elif len(userInput) >= 3 and userInput[:3] == "put":
 
         #look and find file to upload
         try:
@@ -190,6 +233,12 @@ while loop:
             clientSocket.send(bytes(portIPString + "\r\n", "ascii"))
             data = clientSocket.recv(1024)
             print(str(data)[2:-5])
+
+            if str(data)[2:5] == "421":
+                print("Lost connection to host, Exiting...")
+                clientSocket.close()
+                dataSocket.close()
+                sys.exit()
 
             clientSocket.send(bytes("STOR " + uploadFile + "\r\n", "ascii"))
             dataSocket.listen(1)
