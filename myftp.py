@@ -101,7 +101,7 @@ while loop:
             clientSocket.close()
             sys.exit()
 
-    #case for delete, simple
+    #case for delete, simple DELE command
     elif len(userInput) >= 6 and userInput[:6] == "delete":
 
         clientSocket.send(bytes("DELE " + userInput[7:] + "\r\n", "ascii"))
@@ -114,6 +114,7 @@ while loop:
             sys.exit()
 
     #case for ls, need to listen for connection using a server side socket running on client
+    #PORT command then NLST command
     elif userInput == "ls":
 
         #socket made to aquire data from a server and client will act as a server when this socket is in use
@@ -126,7 +127,10 @@ while loop:
         portIPString = getPortIPString(ipAddress, dataSocket.getsockname()[1])
 
         #tell server to prepare a TCP connection with client socket at client port and IP
+        #first part of the handshake
         clientSocket.send(bytes(portIPString + "\r\n", "ascii"))
+
+        #reply that is second part of handshake
         data = clientSocket.recv(1024)
         print(str(data)[2:-5])
 
@@ -143,23 +147,33 @@ while loop:
         dataSocket.listen(1)
 
         #TCP connection being accepted on client side from server for data transfer
+        #third part of handshake
         connectionSocket, address = dataSocket.accept()
 
         #TCP warning for incoming data
         data = clientSocket.recv(1024)
         print(str(data)[2:-5])
 
-        #data receiving
-        list = connectionSocket.recv(1024)
-        print("Receiving data from: " + str(address[0]) + "\n\n" +str(list.decode("ascii")))
+        #data receiving loop until full list is downloaded
+        data = connectionSocket.recv(1024)
+        listSize = 0
+        list = ""
+        while len(data) > 0:
+            list = list + str(data.decode("ascii"))
+            listSize = listSize
+            data = connectionSocket.recv(1024)
+        
+        print("Receiving data from: " + str(address[0]) + "\n")
+        print(list)
 
         #TCP closing message
         data = clientSocket.recv(1024)
         print(str(data)[2:-5])
 
+        #size of data transfered
         print("bytes received:", len(list))
 
-        #close data and connection socket
+        #close data socket and connection socket
         connectionSocket.close()
         dataSocket.close()
     
@@ -196,6 +210,8 @@ while loop:
 
         #else we accept the connection and download the file contents, assuming the file is .txt
         else:
+            #if we try to accept the connection with an error code, socket will stall waiting for connection
+            #so we only try and connect if we know that the file exists on server
             connectionSocket, address = dataSocket.accept()
             print("Receiving data from: " + str(address[0]))
             
