@@ -1,6 +1,6 @@
 Written in Python
 
-To run this FTP protocol in the command line:
+To run this FTP client, in the command line type:
 
 python myftp.py "server name"\
 Where server name is the name of the server or its IP
